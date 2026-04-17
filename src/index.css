@@ -1,0 +1,33 @@
+:root {
+  --ink: #1f2a37;
+  --ink-strong: #0f172a;
+  --ink-soft: #55657b;
+  --line: #dbe4ef;
+  --paper: #f4f7fb;
+  --font: 'Source Sans 3', 'Segoe UI', 'Helvetica Neue', sans-serif;
+  --heading: 'IBM Plex Sans', 'Segoe UI', 'Helvetica Neue', sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: var(--font);
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 12% 0%, rgba(195, 224, 255, 0.42), transparent 28%),
+    radial-gradient(circle at 100% 100%, rgba(255, 231, 206, 0.36), transparent 32%),
+    var(--paper);
+}
