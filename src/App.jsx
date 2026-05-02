@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useRef } from 'react'
 import './App.css'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 const RESULT_LABELS = {
   short_goal: 'Research Goal',
   detailed_method: 'Detailed Method',
@@ -42,28 +42,78 @@ const toDisplayText = (value, fallback) => {
   return String(value)
 }
 
+/* ===== SVG Icons ===== */
+const UploadIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <polyline points="17 8 12 3 7 8" />
+    <line x1="12" y1="3" x2="12" y2="15" />
+  </svg>
+)
+
+const AnalyzeIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="11" cy="11" r="8" />
+    <path d="m21 21-4.3-4.3" />
+  </svg>
+)
+
+const SpinnerIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spin 1s linear infinite' }}>
+    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+  </svg>
+)
+
+const FileIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+    <polyline points="14 2 14 8 20 8" />
+  </svg>
+)
+
 function App() {
   const [file, setFile] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
   const [result, setResult] = useState(null)
   const [analyzedAt, setAnalyzedAt] = useState(null)
-
-  const selectedFileSize = useMemo(() => {
-    if (!file) {
-      return null
-    }
-
-    return `${(file.size / (1024 * 1024)).toFixed(2)} MB`
-  }, [file])
+  const [isDragging, setIsDragging] = useState(false)
+  const dropRef = useRef(null)
 
   const canSubmit = Boolean(file && !isLoading)
+
+  const handleFileChange = (event) => {
+    const selected = event.target.files?.[0] ?? null
+    setFile(selected)
+    setError(null)
+  }
+
+  const handleDragOver = (e) => {
+    e.preventDefault()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = () => {
+    setIsDragging(false)
+  }
+
+  const handleDrop = (e) => {
+    e.preventDefault()
+    setIsDragging(false)
+    const dropped = e.dataTransfer.files?.[0]
+    if (dropped && dropped.name.endsWith('.pdf')) {
+      setFile(dropped)
+      setError(null)
+    } else {
+      setError('Please drop a valid PDF file.')
+    }
+  }
 
   const handleSubmit = async (event) => {
     event.preventDefault()
 
     if (!file) {
-      setError('Please select a PDF before analyzing.')
+      setError('Please select a PDF file.')
       return
     }
 
@@ -82,29 +132,32 @@ function App() {
       })
 
       if (!response.ok) {
-        throw new Error(`Request failed with status ${response.status}`)
+        throw new Error(`Analysis failed. Please try again.`)
       }
 
       const data = await response.json()
       setResult(data)
       setAnalyzedAt(new Date())
     } catch (requestError) {
-      const message =
-        requestError instanceof Error
-          ? requestError.message
-          : 'Something went wrong while contacting the backend.'
-
-      setError(message)
+      setError('Server is under maintenance. Please try again later.')
     } finally {
       setIsLoading(false)
     }
   }
 
+  const handleReset = () => {
+    setFile(null)
+    setResult(null)
+    setError(null)
+    setAnalyzedAt(null)
+  }
+
+
   const summaryGoal = useMemo(
     () =>
       toDisplayText(
         result?.short_goal ?? result?.research_goal,
-        'No research goal available from the current result.',
+        '—',
       ),
     [result],
   )
@@ -113,7 +166,7 @@ function App() {
     () =>
       toDisplayText(
         result?.detailed_method ?? result?.research_methods ?? result?.raw_output,
-        'No detailed method available from the current result.',
+        '—',
       ),
     [result],
   )
@@ -129,104 +182,175 @@ function App() {
   }, [result])
 
   return (
-    <main className="app-shell">
-      <section className="hero-panel">
-        <div className="hero-content">
-          <p className="eyebrow">Research Intelligence Studio</p>
-          <h1>Upload a paper and get a structured scientific summary</h1>
-          <p className="subtitle">
-            Designed for fast literature triage: parse the PDF, extract the research goal,
-            and inspect the methodology details in one clean workspace.
-          </p>
+    <main className="app-container">
+      {/* Header */}
+      <header className="app-header">
+        <div className="header-badge">
+          <span className="badge-dot" />
+          AI-Powered Analysis
         </div>
+        <h1>
+          Research Paper{' '}
+          <span className="title-accent">Analyzer</span>
+        </h1>
+        <p className="header-subtitle">
+          Upload a scientific paper and extract key insights, goals, and methodologies instantly.
+        </p>
+      </header>
 
-        <form className="upload-card" onSubmit={handleSubmit}>
-          <label className="file-picker" htmlFor="paper-upload">
-            <span className="file-picker-title">Select PDF</span>
-            <span className="file-picker-hint">Drop or browse one research paper file.</span>
-            <input
-              id="paper-upload"
-              type="file"
-              accept="application/pdf"
-              onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-            />
-          </label>
+      {/* Main Content */}
+      <div className="main-content">
+        {/* Upload Section */}
+        {(!result && !isLoading) && (
+          <section className="upload-panel">
+            <form onSubmit={handleSubmit}>
+              {!file ? (
+                <label
+                  className={`file-upload-box${isDragging ? ' dragging' : ''}`}
+                  htmlFor="pdf-input"
+                  ref={dropRef}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                >
+                  <div className="upload-icon-wrapper">
+                    <UploadIcon />
+                  </div>
+                  <div className="upload-label-main">
+                    <span>Click to browse</span> or drag & drop
+                  </div>
+                  <div className="upload-hint-text">PDF files only, up to 50 MB</div>
+                  <input
+                    id="pdf-input"
+                    type="file"
+                    accept=".pdf"
+                    onChange={handleFileChange}
+                    disabled={isLoading}
+                  />
+                </label>
+              ) : (
+                <div className="file-selected-container">
+                  <div className="file-selected-name">
+                    <FileIcon />
+                    {file.name}
+                  </div>
+                  <button
+                    type="button"
+                    className="remove-file-btn"
+                    onClick={() => setFile(null)}
+                    disabled={isLoading}
+                  >
+                    Remove File
+                  </button>
+                </div>
+              )}
 
-          <div className="upload-meta">
-            <div>
-              <span className="meta-label">Selected file</span>
-              <strong>{file ? file.name : 'No file selected'}</strong>
-            </div>
-            <div>
-              <span className="meta-label">File size</span>
-              <strong>{selectedFileSize ?? '—'}</strong>
-            </div>
-          </div>
+              <button
+                id="analyze-button"
+                className="analyze-btn"
+                type="submit"
+                disabled={!canSubmit}
+              >
+                <span className="btn-content">
+                  {isLoading ? (
+                    <>
+                      <SpinnerIcon />
+                      Analyzing…
+                    </>
+                  ) : (
+                    <>
+                      <AnalyzeIcon />
+                      Analyze Paper
+                    </>
+                  )}
+                </span>
+              </button>
 
-          <button className="analyze-button" type="submit" disabled={!canSubmit}>
-            {isLoading ? 'Analyzing Paper...' : 'Run Analysis'}
-          </button>
-
-          {error && <section className="message error">{error}</section>}
-        </form>
-      </section>
-
-      <section className="results-section">
-        <div className="section-heading">
-          <h2>Analysis Results</h2>
-          <p>
-            {analyzedAt
-              ? `Last updated ${analyzedAt.toLocaleString()}`
-              : 'Run an analysis to populate structured results.'}
-          </p>
-        </div>
-
-        {!result && (
-          <article className="empty-state">
-            <h3>No results yet</h3>
-            <p>
-              Upload a PDF and start analysis. Structured fields from the backend response
-              will appear here automatically.
-            </p>
-          </article>
+              {error && <div className="error-box">{error}</div>}
+            </form>
+          </section>
         )}
 
-        {result && (
-          <div className="results-grid">
-            <article className="result-card goal">
-              <div className="card-header">
-                <span>Research Goal</span>
-              </div>
-              <p>{summaryGoal}</p>
-            </article>
-
-            <article className="result-card large method">
-              <div className="card-header">
-                <span>Detailed Method</span>
-              </div>
-              <p>{summaryMethod}</p>
-            </article>
-
-            {additionalFields.map(([key, value]) => (
-              <article className="result-card" key={key}>
-                <div className="card-header">
-                  <span>{formatResultLabel(key)}</span>
-                </div>
-                <p>{toDisplayText(value, 'No value available.')}</p>
-              </article>
-            ))}
-
-            {result?.raw_output && (
-              <article className="result-card large raw-output">
-                <div className="card-header">
-                  <span>Raw Model Output</span>
-                </div>
-                <pre>{toDisplayText(result.raw_output, 'No raw output available.')}</pre>
-              </article>
-            )}
-          </div>
+        {/* Loading State */}
+        {isLoading && (
+          <section className="loading-state">
+            <div className="spinner-wrapper">
+              <div className="spinner" />
+            </div>
+            <p>Processing your research paper…</p>
+          </section>
         )}
-      </section>
+
+        {/* Results Section */}
+        {result && !isLoading && (
+          <section className="results-panel">
+            <div className="results-header">
+              <span className="result-status">
+                <span className="status-icon">✓</span>
+                Analysis Complete
+              </span>
+              <div className="header-actions">
+                {analyzedAt && (
+                  <span className="result-time">{analyzedAt.toLocaleTimeString()}</span>
+                )}
+                <button className="reset-btn" onClick={handleReset} type="button">
+                  New Analysis
+                </button>
+              </div>
+            </div>
+
+            <div className="results-stack">
+              <article className="result-item">
+                <h3>Research Goal</h3>
+                <p>{summaryGoal}</p>
+              </article>
+
+              <article className="result-item">
+                <h3>Methodology</h3>
+                <p>{summaryMethod}</p>
+              </article>
+
+              {additionalFields.map(([key, value]) => (
+                <article className="result-item" key={key}>
+                  <h3>{formatResultLabel(key)}</h3>
+                  <p>{toDisplayText(value, '—')}</p>
+                </article>
+              ))}
+
+              {result?.raw_output && (
+                <article className="result-item raw-output-item">
+                  <h3>Raw Output</h3>
+                  <pre>{toDisplayText(result.raw_output, '—')}</pre>
+                </article>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* Empty State */}
+        {!result && !isLoading && (
+          <section className="empty-state-section">
+            <div className="empty-message">
+              <div className="empty-icon">📄</div>
+              <p>No results yet</p>
+              <span>Upload a PDF above to start analysis</span>
+            </div>
+          </section>
+        )}
+      </div>
+
+      <footer className="app-footer">
+        <div className="footer-credits">
+          Research Paper Analyzer — By{' '}
+          <a href="https://in.linkedin.com/in/jaineel-chhatraliya" target="_blank" rel="noopener noreferrer" className="footer-link">
+            Jaineel Chhatraliya
+          </a>
+          <span className="footer-separator">&</span>
+          <a href="https://github.com/ommakadiya" target="_blank" rel="noopener noreferrer" className="footer-link">
+            Om Makadiya
+          </a>
+        </div>
+      </footer>
     </main>
   )
 }
