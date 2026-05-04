@@ -83,6 +83,28 @@ function App() {
 
   const canSubmit = Boolean(file && !isLoading)
 
+  const openFilePicker = () => {
+    if (isLoading) {
+      return
+    }
+
+    const input = fileInputRef.current
+    if (!input) {
+      return
+    }
+
+    if (typeof input.showPicker === 'function') {
+      try {
+        input.showPicker()
+        return
+      } catch {
+        // Fallback for browsers that block showPicker in this context.
+      }
+    }
+
+    input.click()
+  }
+
   const handleFileChange = (event) => {
     const selected = event.target.files?.[0] ?? null
     setFile(selected)
@@ -212,10 +234,19 @@ function App() {
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
-                  onClick={() => fileInputRef.current && fileInputRef.current.click()}
+                  onPointerDown={(e) => {
+                    e.preventDefault()
+                    openFilePicker()
+                  }}
+                  onClick={(e) => e.preventDefault()}
                   role="button"
                   tabIndex={0}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') fileInputRef.current && fileInputRef.current.click() }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      openFilePicker()
+                    }
+                  }}
                 >
                   <div className="upload-icon-wrapper">
                     <UploadIcon />
