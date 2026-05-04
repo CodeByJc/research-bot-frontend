@@ -79,6 +79,7 @@ function App() {
   const [analyzedAt, setAnalyzedAt] = useState(null)
   const [isDragging, setIsDragging] = useState(false)
   const dropRef = useRef(null)
+  const fileInputRef = useRef(null)
 
   const canSubmit = Boolean(file && !isLoading)
 
@@ -205,13 +206,16 @@ function App() {
           <section className="upload-panel">
             <form onSubmit={handleSubmit}>
               {!file ? (
-                <label
+                <div
                   className={`file-upload-box${isDragging ? ' dragging' : ''}`}
-                  htmlFor="pdf-input"
                   ref={dropRef}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
+                  onClick={() => fileInputRef.current && fileInputRef.current.click()}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') fileInputRef.current && fileInputRef.current.click() }}
                 >
                   <div className="upload-icon-wrapper">
                     <UploadIcon />
@@ -222,12 +226,14 @@ function App() {
                   <div className="upload-hint-text">PDF files only, up to 50 MB</div>
                   <input
                     id="pdf-input"
+                    ref={fileInputRef}
+                    style={{ display: 'none' }}
                     type="file"
                     accept=".pdf"
                     onChange={handleFileChange}
                     disabled={isLoading}
                   />
-                </label>
+                </div>
               ) : (
                 <div className="file-selected-container">
                   <div className="file-selected-name">
