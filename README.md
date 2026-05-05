@@ -2,6 +2,15 @@
 
 Professional, clean light-theme frontend built with React + TypeScript + Vite for your FastAPI research analysis backend.
 
+## Live URL
+
+https://researchbot.jc7.in
+
+## Supporting GitHub Repositories
+
+- https://github.com/CodeByJc/research-bot-csv-structured-output
+- https://github.com/CodeByJc/research-bot-frontend
+
 ## Backend Integration
 
 This UI integrates with:
