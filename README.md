@@ -9,7 +9,7 @@ https://researchbot.jc7.in
 ## Supporting GitHub Repositories
 
 - https://github.com/CodeByJc/research-bot-csv-structured-output
-- https://github.com/CodeByJc/research-bot-frontend
+- https://github.com/CodeByJc/research-bot-backend
 
 ## Backend Integration
 
